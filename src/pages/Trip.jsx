@@ -1,5 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { addExpense, deleteExpense, getTrip, setRate } from '../api.js'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  addExpense,
+  addMember,
+  deleteExpense,
+  getTrip,
+  removeMember,
+  renameMember,
+  setRate,
+  updateExpense,
+} from '../api.js'
+import { rememberTrip } from '../recent.js'
 import {
   CURRENCIES,
   currencyLabel,
@@ -11,6 +21,7 @@ import {
   summarize,
   toJpy,
 } from '../settle.js'
+import { Avatar, SectionTitle, expenseIcon } from '../ui.jsx'
 
 // 他のメンバーの追加を反映するための自動更新の間隔（ミリ秒）
 const REFRESH_INTERVAL = 10000
@@ -19,6 +30,7 @@ export default function Trip({ tripId, navigate }) {
   const [trip, setTrip] = useState(null)
   const [status, setStatus] = useState('loading') // loading / ready / notfound / error
   const [error, setError] = useState('')
+  const [editing, setEditing] = useState(null) // 編集中の支払い（null なら新規追加）
 
   const reload = useCallback(async () => {
     try {
@@ -52,13 +64,29 @@ export default function Trip({ tripId, navigate }) {
     }
   }, [reload])
 
+  // 「最近開いた旅行」に記録する（旅行名やメンバーが変わったときも更新）
+  const recentKey = trip ? `${trip.id}\n${trip.name}\n${trip.members.join('\n')}` : ''
+  useEffect(() => {
+    if (trip) rememberTrip(trip)
+  }, [recentKey])
+
+  // 編集を始めたら入力フォームまでスクロールする
+  useEffect(() => {
+    if (editing) document.getElementById('expense-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [editing])
+
   if (status === 'loading') {
-    return <main className="container"><p className="muted center">読み込み中…</p></main>
+    return (
+      <main className="container">
+        <p className="muted center loading">✈️ 読み込み中…</p>
+      </main>
+    )
   }
   if (status === 'notfound' || status === 'error') {
     return (
       <main className="container">
-        <div className="card">
+        <div className="card center">
+          <div className="big-emoji" aria-hidden="true">🧭</div>
           <h2>{status === 'notfound' ? '旅行が見つかりません' : '読み込みに失敗しました'}</h2>
           <p className="muted">
             {status === 'notfound' ? 'URLが正しいか確認してください。' : error}
@@ -81,43 +109,87 @@ export default function Trip({ tripId, navigate }) {
     }
   }
 
+  const saveExpense = async (expense) => {
+    const ok = await run(() =>
+      editing ? updateExpense(tripId, editing.id, expense) : addExpense(tripId, expense),
+    )
+    if (ok) setEditing(null)
+    return ok
+  }
+
   return (
-    <main className="container">
-      <header className="app-header">
-        <h1>{trip.name}</h1>
-        <p className="muted">メンバー：{trip.members.join('、')}</p>
-      </header>
+    <>
+      <TripHeader trip={trip} navigate={navigate} />
 
-      <ShareBox />
+      <main className="container">
+        {error && (
+          <p className="error" role="alert">
+            {error}
+            <button className="link" onClick={() => setError('')}>閉じる</button>
+          </p>
+        )}
 
-      {error && (
-        <p className="error" role="alert">
-          {error}
-          <button className="link" onClick={() => setError('')}>閉じる</button>
+        <ShareBox />
+
+        <Summary trip={trip} />
+
+        <ExpenseForm
+          key={editing ? editing.id : 'new'}
+          members={trip.members}
+          initial={editing}
+          onSubmit={saveExpense}
+          onCancel={() => setEditing(null)}
+        />
+
+        <ExpenseList
+          trip={trip}
+          editingId={editing?.id}
+          onEdit={setEditing}
+          onDelete={async (id) => {
+            if (editing?.id === id) setEditing(null)
+            await run(() => deleteExpense(tripId, id))
+          }}
+        />
+
+        <RateSection
+          trip={trip}
+          onSave={(currency, rate) => run(() => setRate(tripId, currency, rate))}
+        />
+
+        <MemberSection
+          trip={trip}
+          onAdd={(name) => run(() => addMember(tripId, name))}
+          onRename={(oldName, newName) => run(() => renameMember(tripId, oldName, newName))}
+          onRemove={(name) => run(() => removeMember(tripId, name))}
+        />
+
+        <p className="center">
+          <button className="link" onClick={reload}>最新の状態に更新</button>
         </p>
-      )}
+      </main>
+    </>
+  )
+}
 
-      <Summary trip={trip} />
-
-      <ExpenseForm
-        members={trip.members}
-        onSubmit={(expense) => run(() => addExpense(tripId, expense))}
-      />
-
-      <RateSection
-        trip={trip}
-        onSave={(currency, rate) => run(() => setRate(tripId, currency, rate))}
-      />
-
-      <ExpenseList
-        trip={trip}
-        onDelete={(id) => run(() => deleteExpense(tripId, id))}
-      />
-
-      <p className="center">
-        <button className="link" onClick={reload}>最新の状態に更新</button>
-      </p>
-    </main>
+// 画面上部：旅行名とメンバー
+function TripHeader({ trip, navigate }) {
+  return (
+    <header className="hero hero-trip">
+      <div className="hero-inner">
+        <button className="hero-back" onClick={() => navigate('/')}>← トップ</button>
+        <p className="hero-label">TRIP ✈</p>
+        <h1>{trip.name}</h1>
+        <div className="hero-members">
+          {trip.members.map((m) => (
+            <span key={m} className="hero-member">
+              <Avatar name={m} members={trip.members} size={26} />
+              {m}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="hero-wave" aria-hidden="true" />
+    </header>
   )
 }
 
@@ -137,7 +209,7 @@ async function copyText(text) {
 }
 
 // コピーボタン（押すと2秒間「コピーしました」と表示）
-function CopyButton({ getText, label }) {
+function CopyButton({ getText, label, className = 'primary' }) {
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
@@ -146,7 +218,7 @@ function CopyButton({ getText, label }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  return <button className="primary" onClick={copy}>{copied ? 'コピーしました' : label}</button>
+  return <button className={className} onClick={copy}>{copied ? 'コピーしました ✓' : label}</button>
 }
 
 // 共有URLの表示とコピー
@@ -155,70 +227,86 @@ function ShareBox() {
 
   return (
     <section className="card share">
-      <h2>共有URL</h2>
+      <SectionTitle icon="📮">共有URL</SectionTitle>
       <p className="muted small">このURLを知っている人は誰でも記録を見て追加できます。メンバーにだけ送ってください。</p>
       <div className="share-url">{url}</div>
-      <CopyButton getText={() => url} label="URLをコピー" />
+      <CopyButton getText={() => url} label="URLをコピー" className="secondary full" />
     </section>
   )
 }
 
-// 合計と精算結果
+// 合計と精算結果（搭乗券ふうのカード）
 function Summary({ trip }) {
   const result = useMemo(() => summarize(trip), [trip])
 
   return (
-    <section className="card">
-      <h2>精算結果</h2>
-      <div className="total">
-        <span className="muted">合計（円換算）</span>
-        <strong>{formatYen(result.totalJpy)}</strong>
+    <section className="card ticket">
+      <div className="ticket-band">
+        <span>SETTLEMENT</span>
+        <span>精算チケット</span>
+      </div>
+      <div className="ticket-body">
+        <div className="total">
+          <span className="muted">合計（円換算）</span>
+          <strong>{formatYen(result.totalJpy)}</strong>
+        </div>
+        <p className="muted small total-sub">支払い {trip.expenses.length}件 ・ {trip.members.length}人</p>
       </div>
 
-      {result.missingRates.length > 0 && (
-        <p className="warning">
-          {result.missingRates.join('、')} のレートが未入力のため、その支払いは計算に含まれていません。
-        </p>
-      )}
+      <div className="ticket-perforation" aria-hidden="true" />
 
-      {result.transfers.length === 0 ? (
-        <p className="muted">精算は必要ありません</p>
-      ) : (
-        <ul className="transfers">
-          {result.transfers.map((t, i) => (
-            <li key={i}>
-              <span><b>{t.from}</b> → <b>{t.to}</b></span>
-              <strong>{formatYen(t.amount)}</strong>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="ticket-body">
+        {result.missingRates.length > 0 && (
+          <p className="warning">
+            {result.missingRates.join('、')} のレートが未入力のため、その支払いは計算に含まれていません。
+          </p>
+        )}
 
-      <CopyButton
-        getText={() => settlementText(trip, result, window.location.href)}
-        label="精算結果をコピー（LINEなどに貼り付け用）"
-      />
-
-      <details className="breakdown">
-        <summary>メンバーごとの内訳</summary>
-        <table>
-          <thead>
-            <tr><th>名前</th><th>払った額</th><th>負担額</th><th>差額</th></tr>
-          </thead>
-          <tbody>
-            {trip.members.map((m) => (
-              <tr key={m}>
-                <td>{m}</td>
-                <td>{formatYen(result.paid[m])}</td>
-                <td>{formatYen(result.share[m])}</td>
-                <td className={result.balance[m] >= 0 ? 'plus' : 'minus'}>
-                  {result.balance[m] >= 0 ? '+' : ''}{formatYen(result.balance[m])}
-                </td>
-              </tr>
+        {result.transfers.length === 0 ? (
+          <p className="muted center">🎉 精算は必要ありません</p>
+        ) : (
+          <ul className="transfers">
+            {result.transfers.map((t, i) => (
+              <li key={i}>
+                <span className="transfer-who">
+                  <Avatar name={t.from} members={trip.members} size={28} />
+                  <b>{t.from}</b>
+                  <span className="transfer-arrow" aria-label="から">✈</span>
+                  <Avatar name={t.to} members={trip.members} size={28} />
+                  <b>{t.to}</b>
+                </span>
+                <strong className="transfer-amount">{formatYen(t.amount)}</strong>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </details>
+          </ul>
+        )}
+
+        <CopyButton
+          getText={() => settlementText(trip, result, window.location.href)}
+          label="精算結果をコピー（LINEなどに貼り付け用）"
+        />
+
+        <details className="breakdown">
+          <summary>メンバーごとの内訳</summary>
+          <table>
+            <thead>
+              <tr><th>名前</th><th>払った額</th><th>負担額</th><th>差額</th></tr>
+            </thead>
+            <tbody>
+              {trip.members.map((m) => (
+                <tr key={m}>
+                  <td>{m}</td>
+                  <td>{formatYen(result.paid[m])}</td>
+                  <td>{formatYen(result.share[m])}</td>
+                  <td className={result.balance[m] >= 0 ? 'plus' : 'minus'}>
+                    {result.balance[m] >= 0 ? '+' : ''}{formatYen(result.balance[m])}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      </div>
     </section>
   )
 }
@@ -235,17 +323,35 @@ function parseAmount(text) {
 // 小数第2位までの比較用に整数にする
 const toCents = (n) => Math.round(n * 100)
 
-// 支払いの入力フォーム
-function ExpenseForm({ members, onSubmit }) {
-  const [payer, setPayer] = useState(members[0])
-  const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState('JPY')
-  const [description, setDescription] = useState('')
-  const [mode, setMode] = useState('equal') // equal：均等に割る / custom：金額を指定
-  const [splitAmong, setSplitAmong] = useState(members)
-  const [custom, setCustom] = useState({}) // 金額指定の入力値（メンバー名 → 文字列）
+// 支払いの入力フォーム（initial を渡すと編集モード）
+function ExpenseForm({ members, initial, onSubmit, onCancel }) {
+  const [payer, setPayer] = useState(initial?.payer ?? members[0])
+  const [amount, setAmount] = useState(initial ? String(Number(initial.amount)) : '')
+  const [currency, setCurrency] = useState(initial?.currency ?? 'JPY')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [mode, setMode] = useState(initial?.shares ? 'custom' : 'equal') // equal：均等に割る / custom：金額を指定
+  const [splitAmong, setSplitAmong] = useState(initial && !initial.shares ? initial.split_among : members)
+  // 金額指定の入力値（メンバー名 → 文字列）
+  const [custom, setCustom] = useState(() =>
+    initial?.shares ? Object.fromEntries(Object.entries(initial.shares).map(([m, v]) => [m, String(Number(v))])) : {},
+  )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // メンバーが追加・変更されたら選択状態を合わせる
+  // （それまで全員を選んでいたなら、新しいメンバーも割る人に入れる）
+  const prevMembers = useRef(members)
+  const membersKey = members.join('\n')
+  useEffect(() => {
+    const prev = prevMembers.current
+    prevMembers.current = members
+    setPayer((p) => (members.includes(p) ? p : members[0]))
+    setSplitAmong((list) => {
+      if (prev.every((m) => list.includes(m))) return members
+      const kept = list.filter((m) => members.includes(m))
+      return kept.length > 0 ? kept : members
+    })
+  }, [membersKey])
 
   const toggle = (m) => {
     setSplitAmong((list) => (list.includes(m) ? list.filter((x) => x !== m) : [...list, m]))
@@ -273,9 +379,10 @@ function ExpenseForm({ members, onSubmit }) {
   // 入力内容から送信する割り方を作る。問題があればエラー文を返す
   const buildSplit = (value) => {
     if (mode === 'equal') {
-      if (splitAmong.length === 0) return { error: '割る人を1人以上選んでください' }
+      const selected = members.filter((m) => splitAmong.includes(m))
+      if (selected.length === 0) return { error: '割る人を1人以上選んでください' }
       // メンバーの並び順にそろえて送る
-      return { splitAmong: members.filter((m) => splitAmong.includes(m)) }
+      return { splitAmong: selected }
     }
     const shares = {}
     for (const m of members) {
@@ -311,7 +418,7 @@ function ExpenseForm({ members, onSubmit }) {
       shares: split.shares,
     })
     setSubmitting(false)
-    if (ok) {
+    if (ok && !initial) {
       setAmount('')
       setDescription('')
       setCustom({})
@@ -319,8 +426,8 @@ function ExpenseForm({ members, onSubmit }) {
   }
 
   return (
-    <form className="card" onSubmit={handleSubmit}>
-      <h2>支払いを追加</h2>
+    <form id="expense-form" className={`card ${initial ? 'editing' : ''}`} onSubmit={handleSubmit}>
+      <SectionTitle icon={initial ? '✏️' : '🧾'}>{initial ? '支払いを編集' : '支払いを追加'}</SectionTitle>
 
       <label className="field">
         <span>払った人</span>
@@ -379,6 +486,7 @@ function ExpenseForm({ members, onSubmit }) {
             {members.map((m) => (
               <label key={m} className={`chip ${splitAmong.includes(m) ? 'on' : ''}`}>
                 <input type="checkbox" checked={splitAmong.includes(m)} onChange={() => toggle(m)} />
+                <Avatar name={m} members={members} size={22} />
                 {m}
               </label>
             ))}
@@ -390,6 +498,7 @@ function ExpenseForm({ members, onSubmit }) {
           <p className="muted small">負担しない人は空欄か0のままにしてください</p>
           {members.map((m) => (
             <label key={m} className="rate-row">
+              <Avatar name={m} members={members} size={26} />
               <span className="share-name">{m}</span>
               <input
                 inputMode="decimal"
@@ -402,7 +511,7 @@ function ExpenseForm({ members, onSubmit }) {
           {remaining !== null && (
             <p className={`small ${toCents(remaining) === 0 ? 'muted' : 'warning'}`}>
               {toCents(remaining) === 0
-                ? '内訳の合計が金額と一致しています'
+                ? '✓ 内訳の合計が金額と一致しています'
                 : toCents(remaining) > 0
                   ? `残り ${formatAmount(remaining.toFixed(decimalsOf(currency)), currency)}`
                   : `${formatAmount((-remaining).toFixed(decimalsOf(currency)), currency)} 多すぎます`}
@@ -417,9 +526,66 @@ function ExpenseForm({ members, onSubmit }) {
       {error && <p className="error">{error}</p>}
 
       <button type="submit" className="primary" disabled={submitting}>
-        {submitting ? '追加中…' : '追加する'}
+        {submitting ? '保存中…' : initial ? '変更を保存' : '追加する'}
       </button>
+      {initial && (
+        <button type="button" className="ghost full" onClick={onCancel} disabled={submitting}>
+          編集をやめる
+        </button>
+      )}
     </form>
+  )
+}
+
+// 支払いの一覧
+function ExpenseList({ trip, editingId, onEdit, onDelete }) {
+  const handleDelete = (e) => {
+    const label = e.description || '（内容なし）'
+    if (window.confirm(`「${label}」${formatAmount(e.amount, e.currency)} を削除しますか？`)) {
+      onDelete(e.id)
+    }
+  }
+
+  return (
+    <section className="card">
+      <SectionTitle icon="📒">支払い一覧（{trip.expenses.length}件）</SectionTitle>
+      {trip.expenses.length === 0 ? (
+        <p className="muted center">まだ支払いがありません。旅の思い出をどうぞ 📸</p>
+      ) : (
+        <ul className="expenses">
+          {trip.expenses.map((e) => {
+            const jpy = toJpy(e, trip.rates)
+            const everyone = e.split_among.length === trip.members.length
+            return (
+              <li key={e.id} className={editingId === e.id ? 'is-editing' : ''}>
+                <span className="expense-icon" aria-hidden="true">{expenseIcon(e.description)}</span>
+                <div className="expense-main">
+                  <div className="expense-title">{e.description || '（内容なし）'}</div>
+                  <div className="muted small">
+                    {e.payer} が支払い ／ {e.shares
+                      ? `内訳：${trip.members
+                          .filter((m) => e.shares[m] != null)
+                          .map((m) => `${m} ${formatAmount(e.shares[m], e.currency)}`)
+                          .join('、')}`
+                      : `${everyone ? '全員' : e.split_among.join('、')}で割る`}
+                  </div>
+                  <div className="expense-actions">
+                    <button className="link" onClick={() => onEdit(e)}>編集</button>
+                    <button className="link danger" onClick={() => handleDelete(e)}>削除</button>
+                  </div>
+                </div>
+                <div className="expense-amount">
+                  <div>{formatAmount(e.amount, e.currency)}</div>
+                  {e.currency !== 'JPY' && (
+                    <div className="muted small">{jpy === null ? 'レート未入力' : `≈ ${formatYen(jpy)}`}</div>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
 
@@ -433,7 +599,7 @@ function RateSection({ trip, onSave }) {
 
   return (
     <section className="card">
-      <h2>為替レート</h2>
+      <SectionTitle icon="💱">為替レート</SectionTitle>
       {codes.length === 0 ? (
         <p className="muted">外貨の支払いを追加すると、ここでレートを入力できます</p>
       ) : (
@@ -488,50 +654,80 @@ function RateInput({ code, saved, onSave }) {
   )
 }
 
-// 支払いの一覧
-function ExpenseList({ trip, onDelete }) {
-  const handleDelete = (e) => {
-    const label = e.description || '（内容なし）'
-    if (window.confirm(`「${label}」${formatAmount(e.amount, e.currency)} を削除しますか？`)) {
-      onDelete(e.id)
-    }
+// メンバーの追加・名前変更・削除
+function MemberSection({ trip, onAdd, onRename, onRemove }) {
+  const [newName, setNewName] = useState('')
+  const [renaming, setRenaming] = useState(null) // 名前を変更中のメンバー
+  const [draft, setDraft] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  // 支払いに関わっているメンバー（削除できない）
+  const used = useMemo(() => new Set(trip.expenses.flatMap((e) => [e.payer, ...e.split_among])), [trip])
+
+  const handleAdd = async (e) => {
+    e.preventDefault()
+    if (!newName.trim()) return
+    setBusy(true)
+    if (await onAdd(newName.trim())) setNewName('')
+    setBusy(false)
+  }
+
+  const startRename = (m) => {
+    setRenaming(m)
+    setDraft(m)
+  }
+
+  const handleRename = async (e) => {
+    e.preventDefault()
+    const name = draft.trim()
+    if (!name || name === renaming) return setRenaming(null)
+    setBusy(true)
+    if (await onRename(renaming, name)) setRenaming(null)
+    setBusy(false)
+  }
+
+  const handleRemove = async (m) => {
+    if (!window.confirm(`${m} をメンバーから外しますか？`)) return
+    setBusy(true)
+    await onRemove(m)
+    setBusy(false)
   }
 
   return (
     <section className="card">
-      <h2>支払い一覧（{trip.expenses.length}件）</h2>
-      {trip.expenses.length === 0 ? (
-        <p className="muted">まだ支払いがありません</p>
-      ) : (
-        <ul className="expenses">
-          {trip.expenses.map((e) => {
-            const jpy = toJpy(e, trip.rates)
-            const everyone = e.split_among.length === trip.members.length
-            return (
-              <li key={e.id}>
-                <div className="expense-main">
-                  <div className="expense-title">{e.description || '（内容なし）'}</div>
-                  <div className="muted small">
-                    {e.payer} が支払い ／ {e.shares
-                      ? `内訳：${trip.members
-                          .filter((m) => e.shares[m] != null)
-                          .map((m) => `${m} ${formatAmount(e.shares[m], e.currency)}`)
-                          .join('、')}`
-                      : `${everyone ? '全員' : e.split_among.join('、')}で割る`}
-                  </div>
-                </div>
-                <div className="expense-amount">
-                  <div>{formatAmount(e.amount, e.currency)}</div>
-                  {e.currency !== 'JPY' && (
-                    <div className="muted small">{jpy === null ? 'レート未入力' : `≈ ${formatYen(jpy)}`}</div>
-                  )}
-                </div>
-                <button className="icon-button" onClick={() => handleDelete(e)} aria-label="削除">×</button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+      <SectionTitle icon="👥">メンバー（{trip.members.length}人）</SectionTitle>
+      <ul className="members">
+        {trip.members.map((m) => (
+          <li key={m}>
+            {renaming === m ? (
+              <form className="row grow" onSubmit={handleRename}>
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={30} autoFocus />
+                <button type="submit" className="secondary" disabled={busy}>保存</button>
+                <button type="button" className="ghost" onClick={() => setRenaming(null)} disabled={busy}>やめる</button>
+              </form>
+            ) : (
+              <>
+                <Avatar name={m} members={trip.members} />
+                <span className="member-name">{m}</span>
+                <button className="link" onClick={() => startRename(m)} disabled={busy}>名前を変更</button>
+                {!used.has(m) && trip.members.length > 1 && (
+                  <button className="link danger" onClick={() => handleRemove(m)} disabled={busy}>外す</button>
+                )}
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="muted small">名前を変えると、過去の支払いの名前も変わります。支払いに関わっている人は外せません。</p>
+      <form className="row" onSubmit={handleAdd}>
+        <input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="追加するメンバーの名前"
+          maxLength={30}
+        />
+        <button type="submit" className="secondary" disabled={busy || !newName.trim()}>追加</button>
+      </form>
     </section>
   )
 }

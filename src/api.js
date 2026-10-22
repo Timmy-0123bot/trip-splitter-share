@@ -38,3 +38,30 @@ export function deleteExpense(tripId, expenseId) {
 export function setRate(tripId, currency, rate) {
   return call('set_rate', { p_trip_id: tripId, p_currency: currency, p_rate: rate })
 }
+
+// 支払いを編集する（引数は addExpense と同じ形）
+export function updateExpense(tripId, expenseId, { payer, amount, currency, description, splitAmong, shares }) {
+  return call('update_expense', {
+    p_trip_id: tripId,
+    p_expense_id: expenseId,
+    p_payer: payer,
+    p_amount: amount,
+    p_currency: currency,
+    p_description: description,
+    p_split_among: splitAmong,
+    p_shares: shares ?? null,
+  })
+}
+
+export function addMember(tripId, name) {
+  return call('add_member', { p_trip_id: tripId, p_name: name })
+}
+
+// 過去の支払いに出てくる名前もまとめて置き換わる
+export function renameMember(tripId, oldName, newName) {
+  return call('rename_member', { p_trip_id: tripId, p_old_name: oldName, p_new_name: newName })
+}
+
+export function removeMember(tripId, name) {
+  return call('remove_member', { p_trip_id: tripId, p_name: name })
+}

@@ -1,20 +1,26 @@
-/* スマホ向けを基本にしたシンプルなデザイン */
+/* 旅行気分のデザイン：空と海の色、搭乗券ふうのカード、丸い文字 */
 :root {
-  --bg: #f4f6f5;
+  --sky: #4cc9f0;
+  --sea: #2bb3c0;
+  --sea-deep: #1b8a96;
+  --sun: #ff8a5b;
+  --sun-deep: #f0683a;
+  --sand: #fff7ec;
   --card: #ffffff;
-  --text: #1f2933;
-  --muted: #6b7680;
-  --border: #dde3e1;
-  --primary: #0f766e;
-  --primary-soft: #e6f4f2;
-  --danger: #b42318;
-  --danger-soft: #fdecea;
-  --warning-soft: #fff6db;
-  --plus: #0f766e;
-  --minus: #b42318;
-  font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  --text: #23323f;
+  --muted: #74808b;
+  --border: #ece3d6;
+  --sea-soft: #e3f6f7;
+  --sun-soft: #fff0e8;
+  --danger: #d64545;
+  --danger-soft: #fdecec;
+  --warning-soft: #fff4d6;
+  --plus: #1b8a96;
+  --minus: #d64545;
+  --shadow: 0 6px 20px rgba(35, 50, 63, 0.08);
+  font-family: 'M PLUS Rounded 1c', system-ui, -apple-system, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
   color: var(--text);
-  background: var(--bg);
+  background: var(--sand);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -24,38 +30,230 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--sand);
+  min-height: 100vh;
 }
 
 .container {
   max-width: 520px;
   margin: 0 auto;
-  padding: 16px 16px 48px;
+  padding: 0 16px 56px;
+  position: relative;
 }
 
-.app-header h1 {
-  font-size: 1.5rem;
-  margin: 8px 0 4px;
+/* ---------- ヘッダー（空のグラデーションと波） ---------- */
+.hero {
+  position: relative;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(255, 214, 102, 0.9) 0 28px, rgba(255, 214, 102, 0) 29px),
+    linear-gradient(160deg, var(--sky) 0%, var(--sea) 70%, var(--sea-deep) 100%);
+  color: #fff;
+  padding: 28px 16px 56px;
+  overflow: hidden;
+}
+
+/* 雲 */
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+
+.hero::before {
+  width: 120px;
+  height: 28px;
+  top: 26px;
+  left: -30px;
+  box-shadow: 40px -12px 0 -4px rgba(255, 255, 255, 0.35);
+}
+
+.hero::after {
+  width: 90px;
+  height: 22px;
+  top: 92px;
+  right: -20px;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.hero h1 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 4px 0 6px;
   word-break: break-word;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-.app-header p {
-  margin: 0 0 16px;
+.hero p {
+  margin: 0;
+  opacity: 0.95;
 }
 
+.hero-emoji {
+  font-size: 1.8rem;
+  letter-spacing: 6px;
+}
+
+.hero-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  opacity: 0.85;
+  margin-top: 12px !important;
+}
+
+.hero-back {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  min-height: 34px;
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.hero-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hero-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 3px 12px 3px 3px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* 下の波 */
+.hero-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 34px;
+  background:
+    radial-gradient(40px 22px at 40px 0, transparent 98%, var(--sand) 100%) repeat-x;
+  background-size: 80px 34px;
+}
+
+/* ヘッダーにカードを少し重ねる */
+.hero + .container {
+  margin-top: -18px;
+}
+
+/* ---------- カード ---------- */
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 20px;
+  padding: 18px;
   margin-bottom: 16px;
+  box-shadow: var(--shadow);
 }
 
 .card h2 {
   font-size: 1.1rem;
-  margin: 0 0 12px;
+  font-weight: 800;
+  margin: 0;
 }
 
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-title h2 {
+  flex: 1;
+}
+
+.section-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--sea-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex: none;
+}
+
+.card.editing {
+  outline: 3px solid var(--sun);
+}
+
+.card.editing .section-icon {
+  background: var(--sun-soft);
+}
+
+/* ---------- 搭乗券ふうのカード ---------- */
+.ticket {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ticket-band {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, var(--sun) 0%, #ffb35c 100%);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+  padding: 10px 18px;
+}
+
+.ticket-body {
+  padding: 18px;
+}
+
+.ticket-body h2 {
+  margin-bottom: 14px;
+}
+
+/* 切り取り線（左右の丸い切り欠きと点線） */
+.ticket-perforation {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--border);
+  margin: 0 18px;
+}
+
+.ticket-perforation::before,
+.ticket-perforation::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sand);
+}
+
+.ticket-perforation::before {
+  left: -30px;
+}
+
+.ticket-perforation::after {
+  right: -30px;
+}
+
+/* ---------- 文字・汎用 ---------- */
 .muted {
   color: var(--muted);
 }
@@ -68,6 +266,17 @@ body {
   text-align: center;
 }
 
+.loading {
+  padding-top: 80px;
+  font-size: 1.1rem;
+}
+
+.big-emoji {
+  font-size: 3rem;
+  margin-bottom: 4px;
+}
+
+/* ---------- フォーム ---------- */
 .field {
   display: flex;
   flex-direction: column;
@@ -77,10 +286,14 @@ body {
 
 .field > span {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.field p {
+  margin: 0;
 }
 
 .row {
@@ -89,7 +302,9 @@ body {
   align-items: flex-end;
 }
 
-.field .row {
+.field .row,
+.card > form.row,
+.members .row {
   align-items: center;
 }
 
@@ -109,54 +324,80 @@ button {
 input,
 select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #fff;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: #fffdf9;
   color: var(--text);
-  min-height: 44px;
+  min-height: 46px;
 }
 
 input:focus,
 select:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: -1px;
+  outline: none;
+  border-color: var(--sea);
+  background: #fff;
 }
 
 button {
   cursor: pointer;
-  border-radius: 10px;
-  min-height: 44px;
+  border-radius: 14px;
+  min-height: 46px;
   padding: 10px 16px;
   border: none;
+  font-weight: 700;
+  transition: transform 0.08s ease, filter 0.15s ease;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: default;
 }
 
 .primary {
   width: 100%;
-  background: var(--primary);
+  background: linear-gradient(90deg, var(--sun) 0%, var(--sun-deep) 100%);
   color: #fff;
-  font-weight: 700;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(240, 104, 58, 0.3);
 }
 
 .secondary {
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-weight: 600;
+  background: var(--sea-soft);
+  color: var(--sea-deep);
+  flex: none;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--muted);
+  flex: none;
+}
+
+.full {
+  width: 100%;
+}
+
+.ghost.full {
+  margin-top: 6px;
 }
 
 .link {
   background: none;
-  color: var(--primary);
-  padding: 4px 8px;
+  color: var(--sea-deep);
+  padding: 4px 6px;
   min-height: auto;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.85rem;
   text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link.danger {
+  color: var(--danger);
 }
 
 .icon-button {
@@ -171,32 +412,80 @@ button:disabled {
 .error {
   background: var(--danger-soft);
   color: var(--danger);
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
 }
 
+.container > .error {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow);
+}
+
 .warning {
   background: var(--warning-soft);
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
   font-size: 0.9rem;
 }
 
-/* 共有URL */
-.share-url {
-  background: var(--bg);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 0.85rem;
-  word-break: break-all;
-  margin-bottom: 10px;
+/* ---------- メンバーのアイコン ---------- */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 800;
+  flex: none;
+  line-height: 1;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
 
-/* 割る人の選択 */
+/* ---------- 共有URL ---------- */
+.share-url {
+  background: var(--sand);
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  word-break: break-all;
+  margin: 10px 0;
+  color: var(--muted);
+}
+
+.share p {
+  margin: 0;
+}
+
+/* ---------- 割り方の切り替え ---------- */
+.segmented {
+  display: flex;
+  background: var(--sand);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.segmented button {
+  flex: 1;
+  background: transparent;
+  color: var(--muted);
+  min-height: 40px;
+  border-radius: 11px;
+}
+
+.segmented button.on {
+  background: var(--card);
+  color: var(--sea-deep);
+  box-shadow: 0 2px 6px rgba(35, 50, 63, 0.12);
+}
+
+/* ---------- 割る人の選択 ---------- */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -206,12 +495,16 @@ button:disabled {
 .chip {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
+  gap: 6px;
+  padding: 5px 14px 5px 5px;
+  border: 2px solid var(--border);
   border-radius: 999px;
   min-height: 40px;
   cursor: pointer;
   user-select: none;
+  font-weight: 700;
+  opacity: 0.6;
+  transition: all 0.15s ease;
 }
 
 .chip input {
@@ -219,12 +512,13 @@ button:disabled {
 }
 
 .chip.on {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
+  background: var(--sea-soft);
+  border-color: var(--sea);
+  color: var(--sea-deep);
+  opacity: 1;
 }
 
-/* 為替レート */
+/* ---------- 為替レート・金額指定の行 ---------- */
 .rate-row {
   display: flex;
   align-items: center;
@@ -232,7 +526,7 @@ button:disabled {
   margin-bottom: 10px;
 }
 
-.rate-row span:first-child {
+.rate-row > span:first-child {
   flex: none;
   font-size: 0.9rem;
 }
@@ -243,22 +537,38 @@ button:disabled {
   text-align: right;
 }
 
-/* 精算結果 */
+.rate-row .share-name {
+  width: 6em;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+/* ---------- 精算結果 ---------- */
 .total {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 12px;
+  gap: 8px;
 }
 
 .total strong {
-  font-size: 1.6rem;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--sea-deep);
+}
+
+.total-sub {
+  margin: 4px 0 0;
+  text-align: right;
 }
 
 .transfers {
   list-style: none;
   padding: 0;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
 }
 
 .transfers li {
@@ -266,16 +576,39 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 12px;
-  background: var(--primary-soft);
-  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--sun-soft);
+  border-radius: 14px;
   margin-bottom: 8px;
+}
+
+.transfer-who {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.transfer-arrow {
+  color: var(--sun-deep);
+  margin: 0 2px;
+}
+
+.transfer-amount {
+  font-size: 1.15rem;
+  color: var(--sun-deep);
+  white-space: nowrap;
+}
+
+.breakdown {
+  margin-top: 14px;
 }
 
 .breakdown summary {
   cursor: pointer;
-  color: var(--primary);
-  font-weight: 600;
+  color: var(--sea-deep);
+  font-weight: 700;
   padding: 6px 0;
 }
 
@@ -288,7 +621,7 @@ button:disabled {
 
 .breakdown th,
 .breakdown td {
-  padding: 6px 4px;
+  padding: 7px 4px;
   border-bottom: 1px solid var(--border);
   text-align: right;
 }
@@ -307,7 +640,7 @@ button:disabled {
   color: var(--minus);
 }
 
-/* 支払い一覧 */
+/* ---------- 支払い一覧 ---------- */
 .expenses {
   list-style: none;
   padding: 0;
@@ -316,14 +649,32 @@ button:disabled {
 
 .expenses li {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 2px dotted var(--border);
 }
 
 .expenses li:last-child {
   border-bottom: none;
+}
+
+.expenses li.is-editing {
+  background: var(--sun-soft);
+  border-radius: 14px;
+  padding: 12px 10px;
+}
+
+.expense-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--sand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex: none;
 }
 
 .expense-main {
@@ -332,47 +683,89 @@ button:disabled {
 }
 
 .expense-title {
-  font-weight: 600;
+  font-weight: 700;
   word-break: break-word;
+}
+
+.expense-actions {
+  margin-top: 2px;
+  margin-left: -6px;
 }
 
 .expense-amount {
   text-align: right;
   flex: none;
+  font-weight: 700;
 }
 
-/* 割り方の切り替え */
-.segmented {
+/* ---------- メンバー ---------- */
+.members {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+}
+
+.members li {
   display: flex;
-  background: var(--bg);
-  border-radius: 10px;
-  padding: 4px;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 2px dotted var(--border);
+  min-height: 56px;
 }
 
-.segmented button {
+.member-name {
   flex: 1;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 600;
-  min-height: 40px;
+  min-width: 0;
+  font-weight: 700;
+  word-break: break-word;
 }
 
-.segmented button.on {
-  background: var(--card);
-  color: var(--primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+.card > p.small {
+  margin: 4px 0 12px;
 }
 
-/* 金額指定のメンバー名 */
-.rate-row .share-name {
-  width: 7em;
+/* ---------- 最近開いた旅行 ---------- */
+.recent-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+}
+
+.recent-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.recent-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  background: var(--sea-soft);
+  border-left: 6px solid var(--sea);
+  color: var(--text);
+  padding: 10px 14px;
+}
+
+.recent-name {
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.recent-item .small {
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
-/* 精算結果のコピーボタンと内訳の間をあける */
-.breakdown {
-  margin-top: 12px;
+.card > .section-title + p.small {
+  margin: -6px 0 0;
 }
