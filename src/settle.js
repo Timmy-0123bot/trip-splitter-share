@@ -27,6 +27,32 @@ export function toJpy(expense, rates) {
   return rate > 0 ? amount * rate : null
 }
 
+// 小数を使わない通貨（それ以外は小数第2位まで）
+const ZERO_DECIMAL = new Set(['JPY', 'KRW', 'VND'])
+
+export function decimalsOf(currency) {
+  return ZERO_DECIMAL.has(currency) ? 0 : 2
+}
+
+// 支払い1件の「誰がいくら負担するか」（支払いと同じ通貨）
+// 金額指定ならその内訳、なければ割る人で均等に割る
+export function sharesOf(expense) {
+  if (expense.shares) {
+    return Object.fromEntries(Object.entries(expense.shares).map(([m, v]) => [m, Number(v)]))
+  }
+  const each = Number(expense.amount) / expense.split_among.length
+  return Object.fromEntries(expense.split_among.map((m) => [m, each]))
+}
+
+// 残りの金額を人数で割り、端数は先頭の人から1単位ずつ足して合計をぴったりにする
+export function splitEvenly(total, count, currency) {
+  const unit = 10 ** decimalsOf(currency)
+  const totalUnits = Math.round(total * unit)
+  const base = Math.floor(totalUnits / count)
+  const extra = totalUnits - base * count
+  return Array.from({ length: count }, (_, i) => (base + (i < extra ? 1 : 0)) / unit)
+}
+
 // 合計・各メンバーの収支・精算方法をまとめて計算する
 export function summarize(trip) {
   const balance = {} // プラス＝受け取る側、マイナス＝払う側
@@ -50,10 +76,10 @@ export function summarize(trip) {
     totalJpy += jpy
     paid[e.payer] = (paid[e.payer] ?? 0) + jpy
     balance[e.payer] = (balance[e.payer] ?? 0) + jpy
-    const each = jpy / e.split_among.length
-    for (const m of e.split_among) {
-      share[m] = (share[m] ?? 0) + each
-      balance[m] = (balance[m] ?? 0) - each
+    for (const [m, part] of Object.entries(sharesOf(e))) {
+      const partJpy = (jpy * part) / Number(e.amount)
+      share[m] = (share[m] ?? 0) + partJpy
+      balance[m] = (balance[m] ?? 0) - partJpy
     }
   }
 
@@ -91,6 +117,21 @@ function settle(balance) {
 
 export function formatYen(n) {
   return `${Math.round(n).toLocaleString('ja-JP')}円`
+}
+
+// メッセージアプリに貼り付ける用の精算結果の文章
+export function settlementText(trip, result, url) {
+  const lines = [`【${trip.name}】精算結果`, `合計：${formatYen(result.totalJpy)}`, '']
+  if (result.transfers.length === 0) {
+    lines.push('精算は必要ありません')
+  } else {
+    for (const t of result.transfers) lines.push(`${t.from} → ${t.to}：${formatYen(t.amount)}`)
+  }
+  if (result.missingRates.length > 0) {
+    lines.push('', `※${result.missingRates.join('、')} のレートが未入力のため、その支払いは含まれていません`)
+  }
+  lines.push('', `詳細はこちら：${url}`)
+  return lines.join('\n')
 }
 
 export function formatAmount(amount, currency) {

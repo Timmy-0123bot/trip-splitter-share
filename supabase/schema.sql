@@ -37,6 +37,10 @@ create table if not exists public.expenses (
 
 create index if not exists expenses_trip_id_idx on public.expenses (trip_id);
 
+-- 金額を指定して割る場合の内訳：{"Aさん": 3000, "Bさん": 1000}（支払いと同じ通貨）
+-- null のときは split_among のメンバーで均等に割る
+alter table public.expenses add column if not exists shares jsonb;
+
 -- ---------------------------------------------------------------------
 -- RLS：有効化のみ（ポリシーなし＝直接アクセスはすべて拒否）
 -- ---------------------------------------------------------------------
@@ -114,6 +118,7 @@ as $$
           'currency', e.currency,
           'description', e.description,
           'split_among', to_jsonb(e.split_among),
+          'shares', e.shares,
           'created_at', e.created_at
         )
         order by e.created_at desc
@@ -128,14 +133,20 @@ $$;
 
 -- ---------------------------------------------------------------------
 -- 関数：支払いを追加して ID を返す
+-- p_shares を渡すと金額指定の割り方、省略すると p_split_among で均等割り
 -- ---------------------------------------------------------------------
+
+-- 引数が変わったため、内訳に対応する前の古い関数を削除する
+drop function if exists public.add_expense(uuid, text, numeric, text, text, text[]);
+
 create or replace function public.add_expense(
   p_trip_id uuid,
   p_payer text,
   p_amount numeric,
   p_currency text,
   p_description text,
-  p_split_among text[]
+  p_split_among text[],
+  p_shares jsonb default null
 )
 returns uuid
 language plpgsql
@@ -145,6 +156,7 @@ as $$
 declare
   v_members text[];
   v_split text[];
+  v_shares jsonb;
   v_currency text := upper(btrim(coalesce(p_currency, '')));
   v_description text := btrim(coalesce(p_description, ''));
   v_id uuid;
@@ -170,11 +182,45 @@ begin
     raise exception '内容は200文字以内で入力してください';
   end if;
 
-  -- 割る人の重複を取り除き、全員がメンバーかを確認
-  select coalesce(array_agg(distinct x), '{}')
-    into v_split
-  from unnest(p_split_among) as x
-  where x is not null;
+  if p_shares is not null then
+    -- 金額指定：各値が0以上の数値で、名前がメンバーであることを確認
+    if jsonb_typeof(p_shares) <> 'object' then
+      raise exception '内訳が正しくありません';
+    end if;
+    if exists (
+      select 1
+      from jsonb_each(p_shares) as s
+      where case
+        when jsonb_typeof(s.value) = 'number' then (s.value #>> '{}')::numeric < 0
+        else true
+      end
+    ) then
+      raise exception '内訳の金額が正しくありません';
+    end if;
+    if exists (select 1 from jsonb_object_keys(p_shares) as k where not (k = any (v_members))) then
+      raise exception '内訳にメンバー以外が含まれています';
+    end if;
+
+    -- 0円の人は除き、小数第2位までにそろえる
+    select
+      coalesce(jsonb_object_agg(s.key, round((s.value #>> '{}')::numeric, 2)), '{}'::jsonb),
+      coalesce(array_agg(s.key), '{}')
+      into v_shares, v_split
+    from jsonb_each(p_shares) as s
+    where (s.value #>> '{}')::numeric > 0;
+
+    if (
+      select coalesce(sum((value #>> '{}')::numeric), 0) from jsonb_each(v_shares)
+    ) <> round(p_amount, 2) then
+      raise exception '内訳の合計が金額と一致しません';
+    end if;
+  else
+    -- 均等割り：割る人の重複を取り除く
+    select coalesce(array_agg(distinct x), '{}')
+      into v_split
+    from unnest(p_split_among) as x
+    where x is not null;
+  end if;
 
   if cardinality(v_split) < 1 then
     raise exception '割る人を1人以上選んでください';
@@ -183,8 +229,8 @@ begin
     raise exception '割る人にメンバー以外が含まれています';
   end if;
 
-  insert into public.expenses (trip_id, payer, amount, currency, description, split_among)
-  values (p_trip_id, p_payer, round(p_amount, 2), v_currency, v_description, v_split)
+  insert into public.expenses (trip_id, payer, amount, currency, description, split_among, shares)
+  values (p_trip_id, p_payer, round(p_amount, 2), v_currency, v_description, v_split, v_shares)
   returning id into v_id;
 
   return v_id;
@@ -251,12 +297,12 @@ $$;
 -- ---------------------------------------------------------------------
 revoke execute on function public.create_trip(text, text[]) from public, anon, authenticated;
 revoke execute on function public.get_trip(uuid) from public, anon, authenticated;
-revoke execute on function public.add_expense(uuid, text, numeric, text, text, text[]) from public, anon, authenticated;
+revoke execute on function public.add_expense(uuid, text, numeric, text, text, text[], jsonb) from public, anon, authenticated;
 revoke execute on function public.delete_expense(uuid, uuid) from public, anon, authenticated;
 revoke execute on function public.set_rate(uuid, text, numeric) from public, anon, authenticated;
 
 grant execute on function public.create_trip(text, text[]) to anon, authenticated;
 grant execute on function public.get_trip(uuid) to anon, authenticated;
-grant execute on function public.add_expense(uuid, text, numeric, text, text, text[]) to anon, authenticated;
+grant execute on function public.add_expense(uuid, text, numeric, text, text, text[], jsonb) to anon, authenticated;
 grant execute on function public.delete_expense(uuid, uuid) to anon, authenticated;
 grant execute on function public.set_rate(uuid, text, numeric) to anon, authenticated;

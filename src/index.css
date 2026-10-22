@@ -340,3 +340,39 @@ button:disabled {
   text-align: right;
   flex: none;
 }
+
+/* 割り方の切り替え */
+.segmented {
+  display: flex;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.segmented button {
+  flex: 1;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  min-height: 40px;
+}
+
+.segmented button.on {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* 金額指定のメンバー名 */
+.rate-row .share-name {
+  width: 7em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 精算結果のコピーボタンと内訳の間をあける */
+.breakdown {
+  margin-top: 12px;
+}

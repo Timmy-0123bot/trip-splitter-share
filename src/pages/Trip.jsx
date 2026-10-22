@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { addExpense, deleteExpense, getTrip, setRate } from '../api.js'
-import { CURRENCIES, currencyLabel, formatAmount, formatYen, summarize, toJpy } from '../settle.js'
+import {
+  CURRENCIES,
+  currencyLabel,
+  decimalsOf,
+  formatAmount,
+  formatYen,
+  settlementText,
+  splitEvenly,
+  summarize,
+  toJpy,
+} from '../settle.js'
 
 // 他のメンバーの追加を反映するための自動更新の間隔（ミリ秒）
 const REFRESH_INTERVAL = 10000
@@ -111,33 +121,44 @@ export default function Trip({ tripId, navigate }) {
   )
 }
 
-// 共有URLの表示とコピー
-function ShareBox() {
-  const url = window.location.href
+// 文字列をクリップボードにコピーする
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    // クリップボードAPIが使えない環境向けの予備の方法
+    const area = document.createElement('textarea')
+    area.value = text
+    document.body.appendChild(area)
+    area.select()
+    document.execCommand('copy')
+    area.remove()
+  }
+}
+
+// コピーボタン（押すと2秒間「コピーしました」と表示）
+function CopyButton({ getText, label }) {
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      // クリップボードAPIが使えない環境向けの予備の方法
-      const area = document.createElement('textarea')
-      area.value = url
-      document.body.appendChild(area)
-      area.select()
-      document.execCommand('copy')
-      area.remove()
-    }
+    await copyText(getText())
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  return <button className="primary" onClick={copy}>{copied ? 'コピーしました' : label}</button>
+}
+
+// 共有URLの表示とコピー
+function ShareBox() {
+  const url = window.location.href
 
   return (
     <section className="card share">
       <h2>共有URL</h2>
       <p className="muted small">このURLを知っている人は誰でも記録を見て追加できます。メンバーにだけ送ってください。</p>
       <div className="share-url">{url}</div>
-      <button className="primary" onClick={copy}>{copied ? 'コピーしました' : 'URLをコピー'}</button>
+      <CopyButton getText={() => url} label="URLをコピー" />
     </section>
   )
 }
@@ -173,6 +194,11 @@ function Summary({ trip }) {
         </ul>
       )}
 
+      <CopyButton
+        getText={() => settlementText(trip, result, window.location.href)}
+        label="精算結果をコピー（LINEなどに貼り付け用）"
+      />
+
       <details className="breakdown">
         <summary>メンバーごとの内訳</summary>
         <table>
@@ -197,13 +223,27 @@ function Summary({ trip }) {
   )
 }
 
+// 入力された金額を数値にする（全角数字やカンマも受け付ける）。空欄は null、不正な値は NaN
+function parseAmount(text) {
+  const normalized = text
+    .replace(/[０-９．]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/[,，]/g, '')
+    .trim()
+  return normalized === '' ? null : Number(normalized)
+}
+
+// 小数第2位までの比較用に整数にする
+const toCents = (n) => Math.round(n * 100)
+
 // 支払いの入力フォーム
 function ExpenseForm({ members, onSubmit }) {
   const [payer, setPayer] = useState(members[0])
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('JPY')
   const [description, setDescription] = useState('')
+  const [mode, setMode] = useState('equal') // equal：均等に割る / custom：金額を指定
   const [splitAmong, setSplitAmong] = useState(members)
+  const [custom, setCustom] = useState({}) // 金額指定の入力値（メンバー名 → 文字列）
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -211,14 +251,55 @@ function ExpenseForm({ members, onSubmit }) {
     setSplitAmong((list) => (list.includes(m) ? list.filter((x) => x !== m) : [...list, m]))
   }
 
+  // 金額指定の合計と残り（表示用）
+  const total = parseAmount(amount)
+  const customSum = members.reduce((sum, m) => {
+    const v = parseAmount(custom[m] ?? '')
+    return v > 0 ? sum + v : sum
+  }, 0)
+  const remaining = total > 0 ? total - customSum : null
+
+  // 未入力の人で残りを均等に割って埋める
+  const fillRemaining = () => {
+    setError('')
+    if (!(total > 0)) return setError('先に金額を入力してください')
+    const blanks = members.filter((m) => parseAmount(custom[m] ?? '') === null)
+    if (blanks.length === 0) return setError('未入力の人がいません')
+    if (toCents(remaining) <= 0) return setError('残りの金額がありません')
+    const parts = splitEvenly(remaining, blanks.length, currency)
+    setCustom((c) => ({ ...c, ...Object.fromEntries(blanks.map((m, i) => [m, String(parts[i])])) }))
+  }
+
+  // 入力内容から送信する割り方を作る。問題があればエラー文を返す
+  const buildSplit = (value) => {
+    if (mode === 'equal') {
+      if (splitAmong.length === 0) return { error: '割る人を1人以上選んでください' }
+      // メンバーの並び順にそろえて送る
+      return { splitAmong: members.filter((m) => splitAmong.includes(m)) }
+    }
+    const shares = {}
+    for (const m of members) {
+      const v = parseAmount(custom[m] ?? '')
+      if (v === null || v === 0) continue
+      if (!(v > 0)) return { error: `${m} の金額を正しく入力してください` }
+      shares[m] = Math.round(v * 100) / 100
+    }
+    const names = Object.keys(shares)
+    if (names.length === 0) return { error: '負担する人の金額を入力してください' }
+    const diff = toCents(value) - names.reduce((sum, m) => sum + toCents(shares[m]), 0)
+    if (diff !== 0) {
+      return { error: `内訳の合計が金額と合いません（${diff > 0 ? 'あと' : ''}${formatAmount(Math.abs(diff) / 100, currency)}${diff > 0 ? '' : '多い'}）` }
+    }
+    return { splitAmong: names, shares }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    // 全角数字やカンマも受け付ける
-    const normalized = amount.replace(/[０-９．]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/,/g, '')
-    const value = Number(normalized)
+    const value = parseAmount(amount)
     if (!(value > 0)) return setError('金額を正しく入力してください')
-    if (splitAmong.length === 0) return setError('割る人を1人以上選んでください')
+    const split = buildSplit(value)
+    if (split.error) return setError(split.error)
 
     setSubmitting(true)
     const ok = await onSubmit({
@@ -226,13 +307,14 @@ function ExpenseForm({ members, onSubmit }) {
       amount: value,
       currency,
       description: description.trim(),
-      // メンバーの並び順にそろえて送る
-      splitAmong: members.filter((m) => splitAmong.includes(m)),
+      splitAmong: split.splitAmong,
+      shares: split.shares,
     })
     setSubmitting(false)
     if (ok) {
       setAmount('')
       setDescription('')
+      setCustom({})
     }
   }
 
@@ -276,19 +358,61 @@ function ExpenseForm({ members, onSubmit }) {
       </label>
 
       <div className="field">
-        <span>
-          割る人
-          <button type="button" className="link" onClick={() => setSplitAmong(members)}>全員</button>
-        </span>
-        <div className="chips">
-          {members.map((m) => (
-            <label key={m} className={`chip ${splitAmong.includes(m) ? 'on' : ''}`}>
-              <input type="checkbox" checked={splitAmong.includes(m)} onChange={() => toggle(m)} />
-              {m}
-            </label>
-          ))}
+        <span>割り方</span>
+        <div className="segmented">
+          <button type="button" className={mode === 'equal' ? 'on' : ''} onClick={() => setMode('equal')}>
+            均等に割る
+          </button>
+          <button type="button" className={mode === 'custom' ? 'on' : ''} onClick={() => setMode('custom')}>
+            金額を指定
+          </button>
         </div>
       </div>
+
+      {mode === 'equal' ? (
+        <div className="field">
+          <span>
+            割る人
+            <button type="button" className="link" onClick={() => setSplitAmong(members)}>全員</button>
+          </span>
+          <div className="chips">
+            {members.map((m) => (
+              <label key={m} className={`chip ${splitAmong.includes(m) ? 'on' : ''}`}>
+                <input type="checkbox" checked={splitAmong.includes(m)} onChange={() => toggle(m)} />
+                {m}
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="field">
+          <span>それぞれの負担額（{currency}）</span>
+          <p className="muted small">負担しない人は空欄か0のままにしてください</p>
+          {members.map((m) => (
+            <label key={m} className="rate-row">
+              <span className="share-name">{m}</span>
+              <input
+                inputMode="decimal"
+                value={custom[m] ?? ''}
+                onChange={(e) => setCustom((c) => ({ ...c, [m]: e.target.value }))}
+                placeholder="0"
+              />
+            </label>
+          ))}
+          {remaining !== null && (
+            <p className={`small ${toCents(remaining) === 0 ? 'muted' : 'warning'}`}>
+              {toCents(remaining) === 0
+                ? '内訳の合計が金額と一致しています'
+                : toCents(remaining) > 0
+                  ? `残り ${formatAmount(remaining.toFixed(decimalsOf(currency)), currency)}`
+                  : `${formatAmount((-remaining).toFixed(decimalsOf(currency)), currency)} 多すぎます`}
+            </p>
+          )}
+          <button type="button" className="secondary" onClick={fillRemaining}>
+            残りを未入力の人で均等に割る
+          </button>
+        </div>
+      )}
 
       {error && <p className="error">{error}</p>}
 
@@ -388,7 +512,12 @@ function ExpenseList({ trip, onDelete }) {
                 <div className="expense-main">
                   <div className="expense-title">{e.description || '（内容なし）'}</div>
                   <div className="muted small">
-                    {e.payer} が支払い ／ {everyone ? '全員' : e.split_among.join('、')}で割る
+                    {e.payer} が支払い ／ {e.shares
+                      ? `内訳：${trip.members
+                          .filter((m) => e.shares[m] != null)
+                          .map((m) => `${m} ${formatAmount(e.shares[m], e.currency)}`)
+                          .join('、')}`
+                      : `${everyone ? '全員' : e.split_among.join('、')}で割る`}
                   </div>
                 </div>
                 <div className="expense-amount">

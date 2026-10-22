@@ -16,15 +16,18 @@ export function getTrip(tripId) {
   return call('get_trip', { p_trip_id: tripId })
 }
 
-export function addExpense(tripId, { payer, amount, currency, description, splitAmong }) {
-  return call('add_expense', {
+// shares（金額指定の内訳）は均等割りのときは送らない
+export function addExpense(tripId, { payer, amount, currency, description, splitAmong, shares }) {
+  const args = {
     p_trip_id: tripId,
     p_payer: payer,
     p_amount: amount,
     p_currency: currency,
     p_description: description,
     p_split_among: splitAmong,
-  })
+  }
+  if (shares) args.p_shares = shares
+  return call('add_expense', args)
 }
 
 export function deleteExpense(tripId, expenseId) {
