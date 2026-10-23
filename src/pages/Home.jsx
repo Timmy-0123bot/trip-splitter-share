@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createTrip } from '../api.js'
 import { forgetTrip, loadRecent } from '../recent.js'
+import { PlaneIcon, SectionTitle } from '../ui.jsx'
 
 export default function Home({ navigate }) {
   const [name, setName] = useState('')
@@ -39,29 +40,35 @@ export default function Home({ navigate }) {
     <>
       <header className="hero">
         <div className="hero-inner">
-          <div className="hero-emoji" aria-hidden="true">🧳 ✈️ 🏝️</div>
+          <p className="hero-label">TRIP SPLITTER</p>
           <h1>旅の立替精算</h1>
-          <p>みんなのスマホで記録して、帰ったらすぐ精算。</p>
+          <p className="hero-lead">みんなのスマホで記録して、帰ったらすぐ精算。</p>
+          {/* 飛行ルートの飾り */}
+          <div className="hero-route" aria-hidden="true">
+            <span className="route-code">DEP</span>
+            <span className="route-line"><PlaneIcon size={18} /></span>
+            <span className="route-code">ARR</span>
+          </div>
         </div>
-        <div className="hero-wave" aria-hidden="true" />
       </header>
 
       <main className="container">
         {recent.length > 0 && (
           <section className="card">
-            <div className="section-title">
-              <span className="section-icon" aria-hidden="true">🗺️</span>
-              <h2>最近開いた旅行</h2>
-            </div>
+            <SectionTitle en="RECENT TRIPS">最近開いた旅行</SectionTitle>
             <p className="muted small">このスマホで開いたことのある旅行です</p>
             <ul className="recent-list">
               {recent.map((t) => (
                 <li key={t.id}>
                   <button type="button" className="recent-item" onClick={() => navigate(`/trip/${t.id}`)}>
                     <span className="recent-name">{t.name}</span>
-                    <span className="muted small">
-                      {(t.members ?? []).join('・')}
-                      {t.openedAt ? `　${new Date(t.openedAt).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}に表示` : ''}
+                    <span className="recent-meta">
+                      <span className="muted small">{(t.members ?? []).join('・')}</span>
+                      {t.openedAt && (
+                        <span className="recent-date">
+                          {new Date(t.openedAt).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' })}
+                        </span>
+                      )}
                     </span>
                   </button>
                   <button
@@ -82,7 +89,7 @@ export default function Home({ navigate }) {
         <form className="card ticket" onSubmit={handleSubmit}>
           <div className="ticket-band">
             <span>NEW TRIP</span>
-            <span aria-hidden="true">✈</span>
+            <PlaneIcon size={14} />
           </div>
           <div className="ticket-body">
             <h2>新しい旅をはじめる</h2>
@@ -122,7 +129,7 @@ export default function Home({ navigate }) {
             {error && <p className="error">{error}</p>}
 
             <button type="submit" className="primary" disabled={submitting}>
-              {submitting ? '作成中…' : '旅行を作成 🛫'}
+              {submitting ? '作成中…' : '旅行を作成'}
             </button>
             <p className="muted small center">メンバーはあとから追加・変更もできます</p>
           </div>

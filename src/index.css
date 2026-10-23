@@ -1,26 +1,31 @@
-/* 旅行気分のデザイン：空と海の色、搭乗券ふうのカード、丸い文字 */
+/* 空港と搭乗券をモチーフにした、落ち着いたデザイン
+   濃紺（夜の空港）を基調に、琥珀色（滑走路の灯り）を差し色に使う */
 :root {
-  --sky: #4cc9f0;
-  --sea: #2bb3c0;
-  --sea-deep: #1b8a96;
-  --sun: #ff8a5b;
-  --sun-deep: #f0683a;
-  --sand: #fff7ec;
+  --ink: #0f1d2b;
+  --ink-2: #1a2d42;
+  --ink-3: #27405a;
+  --paper: #f3f1ec;
   --card: #ffffff;
-  --text: #23323f;
-  --muted: #74808b;
-  --border: #ece3d6;
-  --sea-soft: #e3f6f7;
-  --sun-soft: #fff0e8;
-  --danger: #d64545;
-  --danger-soft: #fdecec;
-  --warning-soft: #fff4d6;
-  --plus: #1b8a96;
-  --minus: #d64545;
-  --shadow: 0 6px 20px rgba(35, 50, 63, 0.08);
-  font-family: 'M PLUS Rounded 1c', system-ui, -apple-system, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
+  --text: #17222e;
+  --muted: #6b7682;
+  --line: #e3dfd7;
+  --accent: #e0a24a;
+  --accent-deep: #b97c27;
+  --accent-soft: #fbf1e2;
+  --teal: #2a8f84;
+  --teal-soft: #e5f2f0;
+  --danger: #c0473a;
+  --danger-soft: #fbeceb;
+  --warning-soft: #fbf3df;
+  --plus: #2a8f84;
+  --minus: #c0473a;
+  --on-ink: #eef2f6;
+  --on-ink-muted: #8fa1b3;
+  --shadow: 0 1px 2px rgba(15, 29, 43, 0.06), 0 8px 24px rgba(15, 29, 43, 0.06);
+  --font-num: 'Space Grotesk', 'Noto Sans JP', system-ui, sans-serif;
+  font-family: 'Noto Sans JP', system-ui, -apple-system, 'Hiragino Sans', sans-serif;
   color: var(--text);
-  background: var(--sand);
+  background: var(--paper);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -30,7 +35,7 @@
 
 body {
   margin: 0;
-  background: var(--sand);
+  background: var(--paper);
   min-height: 100vh;
 }
 
@@ -41,81 +46,99 @@ body {
   position: relative;
 }
 
-/* ---------- ヘッダー（空のグラデーションと波） ---------- */
+/* ---------- ヘッダー（夜の空と点の模様） ---------- */
 .hero {
   position: relative;
   background:
-    radial-gradient(circle at 85% 20%, rgba(255, 214, 102, 0.9) 0 28px, rgba(255, 214, 102, 0) 29px),
-    linear-gradient(160deg, var(--sky) 0%, var(--sea) 70%, var(--sea-deep) 100%);
-  color: #fff;
-  padding: 28px 16px 56px;
+    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.5px) 0 0 / 16px 16px,
+    radial-gradient(120% 90% at 100% 0%, rgba(224, 162, 74, 0.18) 0%, rgba(224, 162, 74, 0) 55%),
+    linear-gradient(165deg, var(--ink-2) 0%, var(--ink) 70%);
+  color: var(--on-ink);
+  padding: 24px 16px 52px;
   overflow: hidden;
-}
-
-/* 雲 */
-.hero::before,
-.hero::after {
-  content: '';
-  position: absolute;
-  background: rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-}
-
-.hero::before {
-  width: 120px;
-  height: 28px;
-  top: 26px;
-  left: -30px;
-  box-shadow: 40px -12px 0 -4px rgba(255, 255, 255, 0.35);
-}
-
-.hero::after {
-  width: 90px;
-  height: 22px;
-  top: 92px;
-  right: -20px;
 }
 
 .hero-inner {
   position: relative;
-  z-index: 1;
   max-width: 520px;
   margin: 0 auto;
 }
 
 .hero h1 {
-  font-size: 1.8rem;
-  font-weight: 800;
-  margin: 4px 0 6px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 6px 0 8px;
   word-break: break-word;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.hero p {
-  margin: 0;
-  opacity: 0.95;
-}
-
-.hero-emoji {
-  font-size: 1.8rem;
-  letter-spacing: 6px;
+  color: #fff;
 }
 
 .hero-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  opacity: 0.85;
-  margin-top: 12px !important;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-num);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+  margin: 14px 0 0;
+}
+
+.hero-lead {
+  margin: 0;
+  color: var(--on-ink-muted);
+  font-size: 0.95rem;
+}
+
+/* 飛行ルートの飾り（DEP ─── ✈ ─── ARR） */
+.hero-route {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  font-family: var(--font-num);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--on-ink);
+}
+
+.route-code {
+  font-size: 1.1rem;
+}
+
+.route-line {
+  flex: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.route-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px dashed rgba(238, 242, 246, 0.35);
+}
+
+.route-line svg {
+  position: relative;
+  transform: rotate(90deg);
+  background: var(--ink);
+  padding: 0 6px;
+  box-sizing: content-box;
 }
 
 .hero-back {
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--on-ink);
   min-height: 34px;
   padding: 6px 14px;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 500;
   border-radius: 999px;
 }
 
@@ -123,81 +146,82 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .hero-member {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   padding: 3px 12px 3px 3px;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-/* 下の波 */
-.hero-wave {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 34px;
-  background:
-    radial-gradient(40px 22px at 40px 0, transparent 98%, var(--sand) 100%) repeat-x;
-  background-size: 80px 34px;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 /* ヘッダーにカードを少し重ねる */
 .hero + .container {
-  margin-top: -18px;
+  margin-top: -28px;
 }
 
 /* ---------- カード ---------- */
 .card {
   background: var(--card);
-  border-radius: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
   padding: 18px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   box-shadow: var(--shadow);
 }
 
 .card h2 {
-  font-size: 1.1rem;
-  font-weight: 800;
+  font-size: 1.05rem;
+  font-weight: 700;
   margin: 0;
 }
 
 .section-title {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
-.section-title h2 {
+.section-heading {
   flex: 1;
+  min-width: 0;
 }
 
-.section-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: var(--sea-soft);
-  display: inline-flex;
+/* 英字の小見出し（左に琥珀色の短い線） */
+.section-en {
+  display: flex;
   align-items: center;
+  gap: 8px;
+  font-family: var(--font-num);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--accent-deep);
+  margin: 0 0 4px;
+}
+
+.section-en::before {
+  content: '';
+  width: 14px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.center .section-en {
   justify-content: center;
-  font-size: 1.15rem;
-  flex: none;
 }
 
 .card.editing {
-  outline: 3px solid var(--sun);
-}
-
-.card.editing .section-icon {
-  background: var(--sun-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
 }
 
 /* ---------- 搭乗券ふうのカード ---------- */
@@ -210,12 +234,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(90deg, var(--sun) 0%, #ffb35c 100%);
-  color: #fff;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  font-size: 0.8rem;
-  padding: 10px 18px;
+  background: var(--ink);
+  color: var(--accent);
+  font-family: var(--font-num);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  font-size: 0.72rem;
+  padding: 11px 18px;
 }
 
 .ticket-body {
@@ -230,7 +255,7 @@ body {
 .ticket-perforation {
   position: relative;
   height: 0;
-  border-top: 2px dashed var(--border);
+  border-top: 1px dashed var(--line);
   margin: 0 18px;
 }
 
@@ -238,11 +263,11 @@ body {
 .ticket-perforation::after {
   content: '';
   position: absolute;
-  top: -12px;
+  top: -11px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--sand);
+  background: var(--paper);
 }
 
 .ticket-perforation::before {
@@ -251,6 +276,80 @@ body {
 
 .ticket-perforation::after {
   right: -30px;
+}
+
+/* 精算結果：濃紺の搭乗券 */
+.ticket-dark {
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1.5px) 0 0 / 16px 16px,
+    linear-gradient(170deg, var(--ink-2) 0%, var(--ink) 100%);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.ticket-dark .ticket-band {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ticket-dark .ticket-perforation {
+  border-top-color: rgba(255, 255, 255, 0.18);
+}
+
+.ticket-label {
+  font-family: var(--font-num);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: var(--on-ink-muted);
+  margin: 0;
+}
+
+.total-amount {
+  display: block;
+  font-family: var(--font-num);
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff;
+  margin: 2px 0 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.ticket-stats div {
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  padding-left: 10px;
+}
+
+.ticket-stats dt {
+  font-family: var(--font-num);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: var(--on-ink-muted);
+}
+
+.ticket-stats dd {
+  margin: 2px 0 0;
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.ticket-empty {
+  text-align: center;
+  color: var(--on-ink-muted);
+  margin: 4px 0 16px;
+}
+
+.ticket-dark .warning {
+  background: rgba(224, 162, 74, 0.14);
+  color: #f3d3a3;
 }
 
 /* ---------- 文字・汎用 ---------- */
@@ -268,12 +367,8 @@ body {
 
 .loading {
   padding-top: 80px;
-  font-size: 1.1rem;
-}
-
-.big-emoji {
-  font-size: 3rem;
-  margin-bottom: 4px;
+  font-family: var(--font-num);
+  letter-spacing: 0.1em;
 }
 
 /* ---------- フォーム ---------- */
@@ -285,8 +380,9 @@ body {
 }
 
 .field > span {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
+  color: var(--ink-3);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -325,9 +421,9 @@ input,
 select {
   width: 100%;
   padding: 10px 14px;
-  border: 2px solid var(--border);
-  border-radius: 14px;
-  background: #fffdf9;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfaf7;
   color: var(--text);
   min-height: 46px;
 }
@@ -335,40 +431,60 @@ select {
 input:focus,
 select:focus {
   outline: none;
-  border-color: var(--sea);
+  border-color: var(--ink-3);
   background: #fff;
+  box-shadow: 0 0 0 3px rgba(39, 64, 90, 0.12);
+}
+
+input[inputmode='decimal'] {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
 }
 
 button {
   cursor: pointer;
-  border-radius: 14px;
+  border-radius: 10px;
   min-height: 46px;
   padding: 10px 16px;
   border: none;
   font-weight: 700;
-  transition: transform 0.08s ease, filter 0.15s ease;
+  transition: transform 0.08s ease, background-color 0.15s ease;
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 button:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: default;
 }
 
 .primary {
   width: 100%;
-  background: linear-gradient(90deg, var(--sun) 0%, var(--sun-deep) 100%);
+  background: var(--ink);
   color: #fff;
-  font-weight: 800;
-  box-shadow: 0 4px 12px rgba(240, 104, 58, 0.3);
+  letter-spacing: 0.04em;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--ink-2);
+}
+
+/* 濃紺のカードの上では琥珀色のボタンにする */
+.ticket-dark .primary {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.ticket-dark .primary:hover:not(:disabled) {
+  background: #e8b266;
 }
 
 .secondary {
-  background: var(--sea-soft);
-  color: var(--sea-deep);
+  background: var(--paper);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
   flex: none;
 }
 
@@ -388,11 +504,13 @@ button:disabled {
 
 .link {
   background: none;
-  color: var(--sea-deep);
+  color: var(--ink-3);
   padding: 4px 6px;
   min-height: auto;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 500;
   text-decoration: underline;
+  text-decoration-color: var(--line);
   text-underline-offset: 3px;
 }
 
@@ -406,14 +524,15 @@ button:disabled {
   padding: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 1.3rem;
+  font-size: 1.2rem;
+  font-weight: 400;
 }
 
 .error {
   background: var(--danger-soft);
   color: var(--danger);
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -429,8 +548,8 @@ button:disabled {
 .warning {
   background: var(--warning-soft);
   padding: 10px 14px;
-  border-radius: 14px;
-  font-size: 0.9rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
 }
 
 /* ---------- メンバーのアイコン ---------- */
@@ -440,19 +559,19 @@ button:disabled {
   justify-content: center;
   border-radius: 50%;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   flex: none;
   line-height: 1;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
 
 /* ---------- 共有URL ---------- */
 .share-url {
-  background: var(--sand);
-  border: 2px dashed var(--border);
-  border-radius: 14px;
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
   padding: 10px 14px;
-  font-size: 0.8rem;
+  font-family: var(--font-num);
+  font-size: 0.78rem;
   word-break: break-all;
   margin: 10px 0;
   color: var(--muted);
@@ -465,10 +584,11 @@ button:disabled {
 /* ---------- 割り方の切り替え ---------- */
 .segmented {
   display: flex;
-  background: var(--sand);
-  border-radius: 14px;
-  padding: 4px;
-  gap: 4px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
 }
 
 .segmented button {
@@ -476,13 +596,14 @@ button:disabled {
   background: transparent;
   color: var(--muted);
   min-height: 40px;
-  border-radius: 11px;
+  border-radius: 9px;
+  font-weight: 500;
 }
 
 .segmented button.on {
-  background: var(--card);
-  color: var(--sea-deep);
-  box-shadow: 0 2px 6px rgba(35, 50, 63, 0.12);
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
 }
 
 /* ---------- 割る人の選択 ---------- */
@@ -496,15 +617,21 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 14px 5px 5px;
-  border: 2px solid var(--border);
+  padding: 4px 14px 4px 4px;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  min-height: 40px;
+  min-height: 38px;
   cursor: pointer;
   user-select: none;
-  font-weight: 700;
-  opacity: 0.6;
+  font-weight: 500;
+  color: var(--muted);
+  background: #fff;
   transition: all 0.15s ease;
+}
+
+.chip .avatar {
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
 }
 
 .chip input {
@@ -512,9 +639,13 @@ button:disabled {
 }
 
 .chip.on {
-  background: var(--sea-soft);
-  border-color: var(--sea);
-  color: var(--sea-deep);
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.chip.on .avatar {
   opacity: 1;
 }
 
@@ -528,7 +659,7 @@ button:disabled {
 
 .rate-row > span:first-child {
   flex: none;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .rate-row input {
@@ -543,87 +674,126 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 700;
+  font-weight: 500;
 }
 
-/* ---------- 精算結果 ---------- */
-.total {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.total strong {
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--sea-deep);
-}
-
-.total-sub {
-  margin: 4px 0 0;
-  text-align: right;
-}
-
+/* ---------- 精算結果の各行（FROM ─ ✈ ─ TO） ---------- */
 .transfers {
   list-style: none;
   padding: 0;
-  margin: 0 0 14px;
+  margin: 0 0 16px;
 }
 
 .transfers li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  background: var(--sun-soft);
-  border-radius: 14px;
-  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  column-gap: 10px;
+  row-gap: 8px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.transfer-who {
+.transfers li:first-child {
+  padding-top: 0;
+}
+
+.leg {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
-.transfer-arrow {
-  color: var(--sun-deep);
-  margin: 0 2px;
+.leg-to {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.leg-label {
+  font-family: var(--font-num);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  color: var(--on-ink-muted);
+}
+
+.leg-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.leg-line {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 56px;
+  height: 24px;
+  color: var(--accent);
+}
+
+.leg-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.leg-line svg {
+  position: relative;
+  transform: rotate(90deg);
+  background: var(--ink);
+  padding: 0 4px;
+  box-sizing: content-box;
 }
 
 .transfer-amount {
-  font-size: 1.15rem;
-  color: var(--sun-deep);
-  white-space: nowrap;
+  grid-column: 1 / -1;
+  justify-self: end;
+  font-family: var(--font-num);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
+/* 精算カード内の内訳 */
 .breakdown {
   margin-top: 14px;
 }
 
 .breakdown summary {
   cursor: pointer;
-  color: var(--sea-deep);
-  font-weight: 700;
+  color: var(--on-ink-muted);
+  font-size: 0.88rem;
   padding: 6px 0;
 }
 
 .breakdown table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   margin-top: 8px;
 }
 
 .breakdown th,
 .breakdown td {
-  padding: 7px 4px;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown th {
+  font-weight: 500;
+  color: var(--on-ink-muted);
+  font-size: 0.75rem;
 }
 
 .breakdown th:first-child,
@@ -640,6 +810,14 @@ button:disabled {
   color: var(--minus);
 }
 
+.ticket-dark .plus {
+  color: #6fd1c4;
+}
+
+.ticket-dark .minus {
+  color: #f0998f;
+}
+
 /* ---------- 支払い一覧 ---------- */
 .expenses {
   list-style: none;
@@ -652,7 +830,7 @@ button:disabled {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 2px dotted var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .expenses li:last-child {
@@ -660,20 +838,25 @@ button:disabled {
 }
 
 .expenses li.is-editing {
-  background: var(--sun-soft);
-  border-radius: 14px;
+  background: var(--accent-soft);
+  border-radius: 10px;
   padding: 12px 10px;
 }
 
-.expense-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  background: var(--sand);
+/* 空港コード風の分類（HTL・DIN など） */
+.expense-code {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-family: var(--font-num);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   flex: none;
 }
 
@@ -695,7 +878,13 @@ button:disabled {
 .expense-amount {
   text-align: right;
   flex: none;
-  font-weight: 700;
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-amount .small {
+  font-weight: 500;
 }
 
 /* ---------- メンバー ---------- */
@@ -710,14 +899,14 @@ button:disabled {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 2px dotted var(--border);
+  border-bottom: 1px solid var(--line);
   min-height: 56px;
 }
 
 .member-name {
   flex: 1;
   min-width: 0;
-  font-weight: 700;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -725,18 +914,22 @@ button:disabled {
   margin: 4px 0 12px;
 }
 
-/* ---------- 最近開いた旅行 ---------- */
+/* ---------- 最近開いた旅行（出発案内板ふう） ---------- */
 .recent-list {
   list-style: none;
   padding: 0;
-  margin: 10px 0 0;
+  margin: 0;
 }
 
 .recent-list li {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.recent-list li:last-child {
+  border-bottom: none;
 }
 
 .recent-item {
@@ -744,28 +937,43 @@ button:disabled {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 2px;
   text-align: left;
-  background: var(--sea-soft);
-  border-left: 6px solid var(--sea);
+  background: transparent;
   color: var(--text);
-  padding: 10px 14px;
+  padding: 10px 0;
+  border-radius: 0;
 }
 
 .recent-name {
-  font-weight: 800;
+  font-weight: 700;
   word-break: break-word;
 }
 
-.recent-item .small {
-  font-weight: 500;
+.recent-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.recent-meta .small {
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+}
+
+.recent-date {
+  flex: none;
+  font-family: var(--font-num);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-deep);
+  letter-spacing: 0.06em;
 }
 
 .card > .section-title + p.small {
-  margin: -6px 0 0;
+  margin: -6px 0 6px;
 }

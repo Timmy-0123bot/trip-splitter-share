@@ -9,7 +9,7 @@ import {
   setRate,
   updateExpense,
 } from '../api.js'
-import { rememberTrip } from '../recent.js'
+import { forgetTrip, rememberTrip } from '../recent.js'
 import {
   CURRENCIES,
   currencyLabel,
@@ -21,7 +21,7 @@ import {
   summarize,
   toJpy,
 } from '../settle.js'
-import { Avatar, SectionTitle, expenseIcon } from '../ui.jsx'
+import { Avatar, PlaneIcon, SectionTitle, expenseCategory } from '../ui.jsx'
 
 // 他のメンバーの追加を反映するための自動更新の間隔（ミリ秒）
 const REFRESH_INTERVAL = 10000
@@ -36,6 +36,8 @@ export default function Trip({ tripId, navigate }) {
     try {
       const data = await getTrip(tripId)
       if (!data) {
+        // 削除された旅行は「最近開いた旅行」からも外す
+        forgetTrip(tripId)
         setStatus('notfound')
         return
       }
@@ -78,7 +80,7 @@ export default function Trip({ tripId, navigate }) {
   if (status === 'loading') {
     return (
       <main className="container">
-        <p className="muted center loading">✈️ 読み込み中…</p>
+        <p className="muted center loading">読み込み中…</p>
       </main>
     )
   }
@@ -86,7 +88,7 @@ export default function Trip({ tripId, navigate }) {
     return (
       <main className="container">
         <div className="card center">
-          <div className="big-emoji" aria-hidden="true">🧭</div>
+          <p className="section-en">NOT FOUND</p>
           <h2>{status === 'notfound' ? '旅行が見つかりません' : '読み込みに失敗しました'}</h2>
           <p className="muted">
             {status === 'notfound' ? 'URLが正しいか確認してください。' : error}
@@ -177,7 +179,10 @@ function TripHeader({ trip, navigate }) {
     <header className="hero hero-trip">
       <div className="hero-inner">
         <button className="hero-back" onClick={() => navigate('/')}>← トップ</button>
-        <p className="hero-label">TRIP ✈</p>
+        <p className="hero-label">
+          <span>BOARDING PASS</span>
+          <span>{trip.members.length} PAX</span>
+        </p>
         <h1>{trip.name}</h1>
         <div className="hero-members">
           {trip.members.map((m) => (
@@ -188,7 +193,6 @@ function TripHeader({ trip, navigate }) {
           ))}
         </div>
       </div>
-      <div className="hero-wave" aria-hidden="true" />
     </header>
   )
 }
@@ -218,7 +222,7 @@ function CopyButton({ getText, label, className = 'primary' }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  return <button className={className} onClick={copy}>{copied ? 'コピーしました ✓' : label}</button>
+  return <button className={className} onClick={copy}>{copied ? 'コピーしました' : label}</button>
 }
 
 // 共有URLの表示とコピー
@@ -227,7 +231,7 @@ function ShareBox() {
 
   return (
     <section className="card share">
-      <SectionTitle icon="📮">共有URL</SectionTitle>
+      <SectionTitle en="SHARE">共有URL</SectionTitle>
       <p className="muted small">このURLを知っている人は誰でも記録を見て追加できます。メンバーにだけ送ってください。</p>
       <div className="share-url">{url}</div>
       <CopyButton getText={() => url} label="URLをコピー" className="secondary full" />
@@ -240,17 +244,19 @@ function Summary({ trip }) {
   const result = useMemo(() => summarize(trip), [trip])
 
   return (
-    <section className="card ticket">
+    <section className="card ticket ticket-dark">
       <div className="ticket-band">
         <span>SETTLEMENT</span>
-        <span>精算チケット</span>
+        <span>精算</span>
       </div>
       <div className="ticket-body">
-        <div className="total">
-          <span className="muted">合計（円換算）</span>
-          <strong>{formatYen(result.totalJpy)}</strong>
-        </div>
-        <p className="muted small total-sub">支払い {trip.expenses.length}件 ・ {trip.members.length}人</p>
+        <p className="ticket-label">TOTAL・合計（円換算）</p>
+        <strong className="total-amount">{formatYen(result.totalJpy)}</strong>
+        <dl className="ticket-stats">
+          <div><dt>EXPENSES</dt><dd>{trip.expenses.length}件</dd></div>
+          <div><dt>PAX</dt><dd>{trip.members.length}人</dd></div>
+          <div><dt>TRANSFERS</dt><dd>{result.transfers.length}回</dd></div>
+        </dl>
       </div>
 
       <div className="ticket-perforation" aria-hidden="true" />
@@ -263,18 +269,28 @@ function Summary({ trip }) {
         )}
 
         {result.transfers.length === 0 ? (
-          <p className="muted center">🎉 精算は必要ありません</p>
+          <p className="ticket-empty">精算は必要ありません</p>
         ) : (
           <ul className="transfers">
             {result.transfers.map((t, i) => (
               <li key={i}>
-                <span className="transfer-who">
-                  <Avatar name={t.from} members={trip.members} size={28} />
-                  <b>{t.from}</b>
-                  <span className="transfer-arrow" aria-label="から">✈</span>
-                  <Avatar name={t.to} members={trip.members} size={28} />
-                  <b>{t.to}</b>
+                <div className="leg">
+                  <span className="leg-label">FROM</span>
+                  <span className="leg-name">
+                    <Avatar name={t.from} members={trip.members} size={24} />
+                    {t.from}
+                  </span>
+                </div>
+                <span className="leg-line" aria-label="から">
+                  <PlaneIcon size={14} />
                 </span>
+                <div className="leg leg-to">
+                  <span className="leg-label">TO</span>
+                  <span className="leg-name">
+                    <Avatar name={t.to} members={trip.members} size={24} />
+                    {t.to}
+                  </span>
+                </div>
                 <strong className="transfer-amount">{formatYen(t.amount)}</strong>
               </li>
             ))}
@@ -427,7 +443,7 @@ function ExpenseForm({ members, initial, onSubmit, onCancel }) {
 
   return (
     <form id="expense-form" className={`card ${initial ? 'editing' : ''}`} onSubmit={handleSubmit}>
-      <SectionTitle icon={initial ? '✏️' : '🧾'}>{initial ? '支払いを編集' : '支払いを追加'}</SectionTitle>
+      <SectionTitle en={initial ? 'EDIT EXPENSE' : 'NEW EXPENSE'}>{initial ? '支払いを編集' : '支払いを追加'}</SectionTitle>
 
       <label className="field">
         <span>払った人</span>
@@ -548,17 +564,18 @@ function ExpenseList({ trip, editingId, onEdit, onDelete }) {
 
   return (
     <section className="card">
-      <SectionTitle icon="📒">支払い一覧（{trip.expenses.length}件）</SectionTitle>
+      <SectionTitle en="EXPENSES">支払い一覧（{trip.expenses.length}件）</SectionTitle>
       {trip.expenses.length === 0 ? (
-        <p className="muted center">まだ支払いがありません。旅の思い出をどうぞ 📸</p>
+        <p className="muted center">まだ支払いがありません</p>
       ) : (
         <ul className="expenses">
           {trip.expenses.map((e) => {
             const jpy = toJpy(e, trip.rates)
             const everyone = e.split_among.length === trip.members.length
+            const category = expenseCategory(e.description)
             return (
               <li key={e.id} className={editingId === e.id ? 'is-editing' : ''}>
-                <span className="expense-icon" aria-hidden="true">{expenseIcon(e.description)}</span>
+                <span className="expense-code" title={category.label}>{category.code}</span>
                 <div className="expense-main">
                   <div className="expense-title">{e.description || '（内容なし）'}</div>
                   <div className="muted small">
@@ -599,7 +616,7 @@ function RateSection({ trip, onSave }) {
 
   return (
     <section className="card">
-      <SectionTitle icon="💱">為替レート</SectionTitle>
+      <SectionTitle en="EXCHANGE RATE">為替レート</SectionTitle>
       {codes.length === 0 ? (
         <p className="muted">外貨の支払いを追加すると、ここでレートを入力できます</p>
       ) : (
@@ -695,7 +712,7 @@ function MemberSection({ trip, onAdd, onRename, onRemove }) {
 
   return (
     <section className="card">
-      <SectionTitle icon="👥">メンバー（{trip.members.length}人）</SectionTitle>
+      <SectionTitle en="PASSENGERS">メンバー（{trip.members.length}人）</SectionTitle>
       <ul className="members">
         {trip.members.map((m) => (
           <li key={m}>
